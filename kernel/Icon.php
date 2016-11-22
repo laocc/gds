@@ -15,36 +15,42 @@ class Icon
     public static function create_default($file, $code = null)
     {
         if ($code === null) $code = 'data:image/bmp;base64,AAAQEP';//AAAQEP
-        self::create($code, $file, 32, false);
+        self::create($code, 32);
 //        header('Content-type:text/x-icon', true);
 //        echo $code;
         return null;
     }
 
-    public static function create($file_img, $file_save = null, $size = 32, $is_file = true)
+    /**
+     * @param string $img 资源，可以是一个图片文件，或是文件流
+     * @param int $size 要生成的尺寸
+     * @param null $icon_file
+     * @return bool|null
+     */
+    public static function create($img, $size = 32, $icon_file = null)
     {
-        if ($is_file and !is_file($file_img)) return false;
-        if (is_int($file_save)) list($file_save, $size) = [null, $file_save];
         if (!in_array($size, [16, 32, 48, 64, 128])) $size = 32;
+        $is_file = stripos('$img', 'data:image') !== 0;
 
         if ($is_file) {
-            $info = getimagesize($file_img);
+            $info = getimagesize($img);
             if (!$info) return false;
-            $file_save = $file_img . "_{$size}.ico";
-            $file_image = Gd::createIM($file_img, $info[2]);
+            $icon_file = $icon_file ?: "{$img}_{$size}.ico";
+            $file_image = Gd::createIM($img, $info[2]);
 
             if (!is_resource($file_image)) return false;
             $gd_image = imagecreatetruecolor($size, $size);
             imagecopyresampled($gd_image, $file_image, 0, 0, 0, 0, $size, $size, $info[0], $info[1]);
             $im = self::im_data($gd_image, $size);
-            return file_put_contents($file_save, $im);
+            file_put_contents($icon_file, $im);
 
         } else {
-            if (!$file_save) return false;
-            $file_image = Gd::createIM($file_img, false);
+            if (!$icon_file) throw new \Exception('文件流格式生成ICON时须指定要保存的文件名');
+            $file_image = Gd::createIM($img, false);
             $im = self::im_data($file_image);
-            return file_put_contents($file_save, $im);
+            file_put_contents($icon_file, $im);
         }
+        return $icon_file;
     }
 
     private static function im_data($gd_image, $size = 0)

@@ -7,7 +7,7 @@ define('_ROOT', (__DIR__));
 include '../kernel/autoload.php';
 $action = isset($_GET['action']) ? $_GET['action'] : null;
 
-if (in_array($action, ['mark', 'code', 'code1', 'code2', 'code2s', 'icon'])) {
+if (in_array($action, ['mark','code1', 'code2', 'code2s', 'icon'])) {
     echo <<<HTML
     <style>
         html,body{width:100%;}
@@ -20,17 +20,16 @@ if (in_array($action, ['mark', 'code', 'code1', 'code2', 'code2s', 'icon'])) {
     <title>测试</title>
     <ul>
         <li><a href="?action=mark">加水印</a></li>
-        <li><a href="?action=code">验证码</a></li>
         <li><a href="?action=code1">条形码</a></li>
         <li><a href="?action=code2">复杂二维码</a></li>
         <li><a href="?action=code2s">简洁二维码</a></li>
-        <li><a href="?action=icon">生成ICO</a></li>
+        <li><a href="?action=icon">生成ICO/验证码</a></li>
     </ul>
 HTML;
 
     $obj = new \demo\TestController();
     $obj->{$action}();
-} elseif (in_array($action, ['code_show'])) {
+} elseif (in_array($action, ['code'])) {
     $obj = new \demo\TestController();
     $obj->{$action}();
 }

@@ -4,6 +4,7 @@ namespace demo;
 use laocc\gds\Code;
 use laocc\gds\Code1;
 use laocc\gds\Code2;
+use laocc\gds\Icon;
 use laocc\gds\Image;
 
 class TestController
@@ -12,31 +13,56 @@ class TestController
     /**
      * 显示验证码，包括验证
      */
-    public function code()
+    public function icon()
     {
         echo <<<HTML
-        <form action="?" method="get" style="display:block;width:100%;height:100px;">
-            <input type="hidden" name="action" value="code">
-            <label for="value" style="float: left;">输入验证码：</label>
-            <input type="text" id="value" name="value" style="width:100px;height: 30px;float:left;">
-            <img src="?action=code_show" style="padding:0;margin:0;border:0;width:100px;height: 30px;float:left;" alt="点击刷新">
-            <input type="submit" value="提交表单" style="width:100px;height: 30px;float:left;margin-left: 10px;">
+        <form action="?action=icon" method="post" enctype="multipart/form-data" 
+        style="display:block;width:400px;padding:10px;margin:10px;border: 1px solid #789;overflow: hidden;background: #ffe;">
+        <ul style="margin:0;">
+           <li><label for="value" style="float: left;">选择源文件：</label>
+            <input type="file" id="file" name="file" style="float: left;">
+            </li> 
+            <li><label for="size" style="float: left;">选择ICO格式：</label>
+            <select name="size" id="size" style="width:100px;height: 30px;float:left;">
+                <option value="16">16x16</option>
+                <option value="32" selected>32x32</option>
+                <option value="48">48x48</option>
+                <option value="64">64x64</option>
+            </select>
+            </li> 
+            <li><label for="code" style="float: left;">输入验证码：</label>
+            <input type="text" autocomplete="off" id="code" name="code" style="width:100px;height: 30px;float:left;">
+            <img src="?action=code" onclick="this.src='?action=code&rand='+ Math.random();" style="padding:0;margin:0;border:0;width:100px;height: 30px;float:left;" alt="点击刷新">
+            </li> 
+            <li><input type="submit" value="提交表单" style="width:100px;height: 30px;float:left;"></li>
+           </ul>
 </form>
 HTML;
-        if (isset($_GET['value'])) {
-            echo '<hr><div style="font-size:16px;">验证结果：';
-            $value = $_GET['value'];
-            if ($chk = Code::check($value)) {
-                echo '<span style="color:green;">正确</span></div>';
+
+        if (!empty($_POST)) {
+            echo '<hr>';
+            if ($chk = Code::check(isset($_POST['code']) ? $_POST['code'] : null)) {
+                $this->create_icon($_FILES['file']['tmp_name'], $_POST['size']);
             } else {
-                echo '<span style="color:red;">错误</span></div>';
-                var_dump($chk);
+                echo '<div style="font-size:16px;color:red;">验证码错误</div>';
             }
         }
-
     }
 
-    public function code_show()
+    private function create_icon($file, $size = 32)
+    {
+        $file_save = "/img/icon_{$size}.ico";
+        if ($filename = Icon::create($file, $size, _ROOT . $file_save)) {
+            echo "<img src='{$file_save}'>";
+        }
+        var_dump($filename);
+    }
+
+
+    /**
+     * 显示验证码
+     */
+    public function code()
     {
         $conf = [
             'charset' => 'en',      //使用中文或英文验证码，cn=中文，en=英文，若create()指定了，则以指定的为准
@@ -68,11 +94,6 @@ HTML;
 
     }
 
-
-    public function icon()
-    {
-
-    }
 
     /**
      * 生成二维码
