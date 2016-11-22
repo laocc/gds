@@ -115,7 +115,7 @@ class Code
     public static function create(array $option = [])
     {
         if (php_sapi_name() === 'cli') return null;
-        $option = $option + self::$option;
+        $option += self::$option;
         self::createCode1($img, $code, $option);
         if (!isset($option['code']) or !$option['code']) {//没指定code，则保存到cookies中
             $option['cookies']['attach'] .= date($option['cookies']['date']);
@@ -133,7 +133,7 @@ class Code
             'save' => 0,//0：只显示，1：只保存，2：即显示也保存
             'type' => IMAGETYPE_PNG,//文件类型
         ];
-
+//        var_dump($img);
         Gd::draw($img, $option);
         return true;
     }

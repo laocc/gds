@@ -58,7 +58,7 @@ class Gd
             }
         }
 
-        //$filename为整形，表示图片类型，则为直接输出
+        //输出
         if (php_sapi_name() !== 'cli' and ($option['save'] === 0 or $option['save'] === 2)) {
             ob_start();//清除前先打开，否则在有些情况下清空缓存会失败
             ob_end_clean();//清空所有缓存
@@ -337,14 +337,13 @@ class Gd
                 list($R, $G, $B) = $color;
             }
         } else {
-            $color = preg_replace('/^\#[a-z]+$/i', self::getColorHex('$1'), $color);//颜色名换色值
+            $color = preg_replace('/^[a-z]+$/i', self::getColorHex('$1'), $color);//颜色名换色值
             $color = preg_replace('/^\#([a-f0-9])([a-f0-9])([a-f0-9])$/i', '#$1$1$2$2$3$3', $color);//短色值换为标准色值
             $color = preg_match('/^\#[a-f0-9]{6}$/i', $color) ? $color : '#000000';//不是标准色值的，都当成黑色
             $R = hexdec(substr($color, 1, 2));
             $G = hexdec(substr($color, 3, 2));
             $B = hexdec(substr($color, 5, 2));
         }
-
         return [$R, $G, $B];
     }
 
@@ -420,10 +419,10 @@ class Gd
             $file = [
                 'root' => $root,
                 'path' => $path,
-                'name' => $name ?: (md5(uniqid(mt_rand(), true)) . '.' . ltrim($ext, '.')),
+                'filename' => $name ?: (md5(uniqid(mt_rand(), true)) . '.' . ltrim($ext, '.')),
             ];
             @mkdir("{$root}{$path}", 0740, true);
-            $filename = "{$root}{$path}{$file['name']}";
+            $filename = "{$root}{$path}{$file['filename']}";
         } else {
             $file = $filename = null;
         }

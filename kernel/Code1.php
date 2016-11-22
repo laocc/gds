@@ -1,5 +1,6 @@
 <?php
 namespace laocc\gds;
+
 use laocc\gds\ext\Gd;
 
 /**
@@ -28,23 +29,28 @@ class Code1
         $code['code'] = microtime(true);        //条码内容
         $code['font'] = null;       //字体，若不指定，则用PHP默认字体
         $code['size'] = 10;         //字体大小
-        $code['label'] = false;     //条码下面标签是否需要个性化，也就是分割并在两头加星号，若=null，则不显示标签
+        $code['split'] = 4;         //条码值分组，每组字符个数，=0不分，=null不显示条码值
         $code['pixel'] = 3;         //分辨率即每个点显示的像素，建议3-5
         $code['height'] = 20;       //条码部分高，实际像素为此值乘pixel
-        $code['style'] = null;      //条码格式，可选：A,B,C,或null，若为null则等同于C
+        $code['style'] = null;      //条码格式，可选：A,B,C,或null，若为null则等同于C，这基本不需要指定，非C的条码，还不知道用在什么地方
         $code['root'] = getcwd();    //保存文件目录，不含在URL中部分
         $code['path'] = 'code1/';   //含在URL部分
-        $code['save'] = 0;      //0：只显示，1：只保存，2：即显示也保存
+        $code['save'] = 0;          //0：只显示，1：只保存，2：即显示也保存
+        $code['filename'] = null;      //不带此参，或此参为false值，则随机产生
 
-        $option = $option + $code;
+        $option += $code;
+
+        $option['code'] = strval($option['code']);
+        $option['root'] = rtrim($option['root'], '/');
+        $option['path'] = '/' . trim($option['path'], '/') . '/';
 
         if (!preg_match('/^[\x20\w\!\@\#\$\%\^\&\*\(\)\_\+\`\-\=\[\]\{\}\;\'\\\:\"\|\,\.\/\<\>\?]+$/', $option['code'])) {
             throw new \Exception("条形码只能是英文、数字及半角符号组成");
         }
 
-        if (!!$option['label']) {
-            $option['label'] = '* ' . implode(' ', str_split($option['code'], 4)) . ' *';
-        } elseif ($option['label'] === null) {
+        if (!!$option['split']) {
+            $option['label'] = '* ' . implode(' ', str_split($option['code'], intval($option['split']))) . ' *';
+        } elseif ($option['split'] === null) {
             $option['label'] = null;
         } else {
             $option['label'] = $option['code'];
@@ -57,7 +63,7 @@ class Code1
         $color = new BCG_Color(0, 0, 0);
         $background = new BCG_Color(255, 255, 255);
 
-        list($file, $filename) = Gd::getFileName($option['save'], $option['root'], $option['path'], 'png');
+        list($file, $filename) = Gd::getFileName($option['save'], $option['root'], $option['path'], $option['filename'], 'png');
 
         $Obj = new BCG_code128();
         $Obj->setLabel($option['label']);
