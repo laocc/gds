@@ -3,6 +3,33 @@
 ======================================
 v1.0
 
+# 自动生成缩略图
+```
+server  {
+    listen 80;
+    server_name img.kaibuy.top;
+    root  /home/web/blog/upload;
+
+    error_page 404 =200 /index.php;
+    set $real_root $document_root;
+    fastcgi_intercept_errors on;
+
+    location = /index.php {
+        root  /home/web/blog/public/www;
+        try_files $uri = 404;
+        include fastcgi.conf;
+        fastcgi_pass  unix:/tmp/php-cgi.sock;
+        fastcgi_index index.php;
+        fastcgi_param DOCUMENT_ROOT $real_root;
+    }
+
+    location ~ .*\.(gif|jpg|jpeg|png|bmp|swf|ico)$ {    expires      30d;}
+    location ~ /\. {deny all;}
+    access_log off;
+}
+
+
+```
 
 #生成验证码：
 下面有关选项，都不是必选，可以只定义部分，没指定的，以下面这些值为准：
@@ -98,4 +125,7 @@ $option['save']：
 \gd\Image:size();
 
 ```
+
+
+
 

@@ -65,7 +65,7 @@ class Code2
         $option['filename'] = null;        //生成的文件名
 
         $option['logo'] = null;         //LOGO图片
-        $option['border'] = '#ffffff';  //LOGO外边框颜色
+        $option['logo_border'] = '#ffffff';  //LOGO外边框颜色
 
         $option['parent'] = null;//一个文件地址，将二维码贴在这个图片上
         $option['parent_x'] = null;//若指定，则以指定为准
@@ -2406,13 +2406,13 @@ class qr_Image
             $radius = $bgWidth * 0.15;
 
             //生成圆角的背景
-            $bgIM = Gd::createRectangle($bgWidth, $bgWidth, $option['border'], $radius);
+            $bgIM = Gd::createRectangle($bgWidth, $bgWidth, $option['logo_border'], $radius);
 
             //将背景写到图片上
             imagecopyresampled($base_im, $bgIM, $logoXY - $lgBorder, $logoXY - $lgBorder, 0, 0, $logoWH + $lgBorder * 2, $logoWH + $lgBorder * 2, $bgWidth, $bgWidth);
 
             //创建一个圆角遮罩层
-            $filter = Gd::createCircle($logoWidth, $logoWidth, $option['border'], $radius * 0.5);
+            $filter = Gd::createCircle($logoWidth, $logoWidth, $option['logo_border'], $radius * 0.5);
 
             //将圆角遮罩层合并到LOGO上
             $logoIM = Gd::createIM($option['logo'], $info[2]);

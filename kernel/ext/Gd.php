@@ -29,14 +29,13 @@ class Gd
      */
     public static function draw($im, array $option)
     {
-        $dim = [
+        $option += [
             'save' => 0,//0：只显示，1：只保存，2：即显示也保存
             'filename' => null,
             'type' => 0,//文件类型
             'quality' => 80,
             'version' => isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : '',
         ];
-        $option = $option + $dim;
         if (preg_match('/^\d\.\d$/', $option['version'])) {
             $option['version'] = "HTTP/{$option['version']}";
         }
@@ -44,13 +43,20 @@ class Gd
         //保存到文件
         if ($option['save'] === 1 or $option['save'] === 2) {
             switch ($option['type']) {
+                case 'gif':
                 case IMAGETYPE_GIF:
+                    $option['type'] = IMAGETYPE_GIF;
                     imagegif($im, $option['filename']);
                     break;
+                case 'jpg':
+                case 'jpeg':
                 case IMAGETYPE_JPEG:
+                    $option['type'] = IMAGETYPE_JPEG;
                     imagejpeg($im, $option['filename'], $option['quality'] ?: 80);
                     break;
+                case 'png':
                 case IMAGETYPE_PNG:
+                    $option['type'] = IMAGETYPE_PNG;
                     imagepng($im, $option['filename']);
                     break;
                 default:
@@ -68,7 +74,6 @@ class Gd
 
             //没有明确是否缓存，或明确了不缓存
             if (!isset($option['cache']) or !$option['cache']) {
-//                header('Expires: ' . gmdate('D, d M Y H:i:s \G\M\T', time() - 1), true);
                 header('Cache-Control:no-cache,must-revalidate,no-store', true);
                 header('Pramga: no-cache', true);
                 header('Cache-Info: no cache', true);
@@ -132,27 +137,26 @@ class Gd
         }
         $type = $type ?: \exif_imagetype($pic);
         switch ($type) {
-            case 1:
+            case IMAGETYPE_GIF:
                 $PM = @imagecreatefromgif($pic);
                 break;
-            case 2:
+            case IMAGETYPE_JPEG:
                 $PM = @imagecreatefromjpeg($pic);
                 break;
-            case 3:
+            case IMAGETYPE_PNG:
                 $PM = @imagecreatefrompng($pic);
                 break;
-            case 15:
+            case IMAGETYPE_WBMP:
                 $PM = @imagecreatefromwbmp($pic);
                 break;
-            case 16:
+            case IMAGETYPE_XBM:
                 $PM = @imagecreatefromxbm($pic);
                 break;
-            case 17:
+            case IMAGETYPE_ICO:
                 //ICON
                 $PM = null;
                 break;
             default:
-                var_dump($pic);
                 $PM = self::createFromImg($pic);
                 break;
         }

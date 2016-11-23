@@ -1,7 +1,7 @@
 {
       "name": "laocc/gds",
       "description": "Image processing middleware ",
-      "version": "1.0.0",
+      "version": "v1.0.1",
       "require": {
             "php": ">=5.5.0"
       },

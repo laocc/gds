@@ -20,8 +20,8 @@ class Image
 {
     const Quality = 80;    //JPG默认质量，对所有方法都有效
 
-
     static private $backup = [];
+    static private $pattern;
 
     /**
      * 检查文件是否超宽，并设置到指定尺寸
@@ -188,7 +188,7 @@ class Image
         $option = [
             'save' => 1,//0：只显示，1：只保存，2：即显示也保存
             'filename' => "{$path['dirname']}/{$path['filename']}.{$toExt}",
-            'type' => image_type($toExt),//$info[2],//文件类型
+            'type' => $toExt,//$info[2],//文件类型
             'quality' => self::Quality,
         ];
         Gd::draw($IM, $option);
@@ -196,10 +196,58 @@ class Image
         return true;
     }
 
-
-    private static function thumbs_pnt()
+    /**
+     * 设置缩图的正则公式
+     * @param $ptn
+     */
+    public function pattern($ptn)
     {
-        return Registry::get('config')->upload->thumbs->pattern;
+        if (!!$ptn) self::$pattern = $ptn;
+    }
+
+    private static function thumbs_ptn()
+    {
+        return self::$pattern ?: '/^\/(.+?)\.(jpg|gif|png|bmp|jpeg)\_(\d{1,4})(x|v|z)(\d{1,4})\.\2(?:[\?\#].*)?$/i';
+    }
+
+    /**
+     * 生成缩略图格式的URL
+     * @param array $option
+     * @return mixed|null|string
+     */
+    public static function thumbs_url(...$option)
+    {
+        if (empty($option)) return null;
+        $default_mode = 'x';
+
+        if (count($option) === 1) {//没指定尺寸
+            return $option[0];
+        } elseif (count($option) === 2) {//宽高相同，用x模式
+            if (intval($option[1]) > 0) {
+                list($width, $height, $mode) = [$option[1], $option[1], $default_mode];
+            } else {
+                return $option[0];
+            }
+        } elseif (count($option) === 3) {//指定了：宽高|模式，模式|宽高，宽|高
+            if (in_array($option[1], ['x', 'v', 'z', 'X', 'V', 'Z'])) {
+                list($width, $height, $mode) = [$option[2], $option[2], $option[1]];
+            } elseif (in_array($option[2], ['x', 'v', 'z'])) {
+                list($width, $height, $mode) = [$option[1], $option[1], $option[2]];
+            } else {
+                list($width, $height, $mode) = [$option[1], $option[2], $default_mode];
+            }
+        } else {//啥都指定了：宽|高|模式，模式|宽|高
+            if (in_array($option[3], ['x', 'v', 'z', 'X', 'V', 'Z'])) {
+                list($width, $height, $mode) = [$option[1], $option[2], $option[3]];
+            } else {
+                list($width, $height, $mode) = [$option[2], $option[3], $option[1]];
+            }
+        }
+        list($width, $height, $mode) = [intval($width), intval($height), strtolower($mode)];
+        if (!in_array($mode, ['v', 'x', 'z'])) $mode = $default_mode;
+        if ($height == 0 and $width == 0) return $option[0];
+        $ext = strrchr($option[0], '.');
+        return "{$option[0]}_{$width}{$mode}{$height}{$ext}";
     }
 
     /**
@@ -213,15 +261,26 @@ class Image
      * 2，最后两个数字是缩略图的尺寸；
      * 3，数字中间为x|v|z，x=以最小边多余部分裁掉，v=最大边不够补白,z=拉伸
      */
-    public static function thumbs($path = null, $save = 2)
+    public static function thumbs($path = null, $option = null)
     {
-        if (is_int($path)) list($path, $save) = [null, $path];
+        if (is_array($path)) list($path, $option) = [$option, $path];
+        if (!is_array($option)) $option = [];
+
+        $option += [
+            'save' => 2,//0：只显示，1：只保存，2：即显示也保存
+            'cache' => true,
+            'background' => '#ffffff',//v模式下缩图的背景色
+            'alpha' => false,//v模式时若遇png，背景部分是否写成透明背景
+            'pattern' => null,
+            'tclip' => false,
+        ];
 
         if (!!$path and !is_dir($path)) return false;
-        $Url = $_SERVER["REQUEST_URI"];
+        $Url = $_SERVER['REQUEST_URI'];
         if (!$path) $path = $_SERVER['DOCUMENT_ROOT'];
 
-        preg_match(self::thumbs_pnt(), $Url, $matches);
+        if (!$option['pattern']) $option['pattern'] = self::thumbs_ptn();
+        preg_match($option['pattern'], $Url, $matches);
         if (!$matches) {   //不符合规则
             exit('file non-existent');
         }
@@ -231,7 +290,7 @@ class Image
 
         //源文件不存在
         if (!is_file($file)) {
-            return 'Source file does not exist.';
+            exit('Source file does not exist');
         }
 
         $ext = '.' . pathinfo($file, PATHINFO_EXTENSION);
@@ -240,11 +299,9 @@ class Image
         //若存在备份文件，以备份文件作为源文件
         if (is_file($file . $ext)) $sourceFile = $file . $ext;
 
-        $option = [
-            'save' => $save,//0：只显示，1：只保存，2：即显示也保存
-            'source' => $sourceFile,
-        ];
-        if (strtolower($matches[4]) === 'x' and Registry::get('config')->upload->thumbs->tclip) {
+        $option['source'] = $sourceFile;
+
+        if ($option['tclip'] and strtolower($matches[4]) === 'x' and function_exists('tclip')) {
             return self::thumbs_tclip($Uri, $option);
         } else {
             return self::thumbs_create($Uri, $option);
@@ -260,15 +317,16 @@ class Image
      */
     public static function thumbs_tclip($file, array $option = [])
     {
-        preg_match(self::thumbs_pnt(), $file, $matches);
-        if (!function_exists('tclip') or strtolower($matches[4]) !== 'v') {
+        $option += ['save' => 1, 'cache' => true, 'pattern' => null];
+
+        preg_match($option['pattern'] ?: self::thumbs_ptn(), $file, $matches);
+        if (!function_exists('tclip') or strtolower($matches[4]) !== 'x') {
             return self::thumbs_create($file, $option);
         }
         if (!$matches) return false;
         if (!isset($option['source']) or !$option['source']) {
             $option['source'] = realpath("/{$matches[1]}.{$matches[2]}");
         }
-
         $create = tclip($option['source'], $file, intval($matches[3]), intval($matches[5]));
 
         if ($create === true) {
@@ -276,7 +334,7 @@ class Image
             $im = Gd::createIM($file, $type);
             $option = [
                 'save' => 0,//0：只显示，1：只保存，2：即显示也保存
-                'cache' => true,//允许缓存
+                'cache' => $option['cache'],//允许缓存
                 'type' => $type,//文件类型
                 'quality' => self::Quality,
             ];
@@ -297,19 +355,21 @@ class Image
      */
     public static function thumbs_create($file, array $option = [])
     {
-        preg_match(self::thumbs_pnt(), $file, $matches);
+        $option += ['pattern' => null];
+        preg_match($option['pattern'] ?: self::thumbs_ptn(), $file, $matches);
         if (!$matches) return false;
-        $opt = Registry::get('config')->upload->thumbs;
-        $dim = [
-            'background' => $opt->background ?: '#ffffff',
-            'type' => strtolower($matches[4]),
-            'alpha' => $opt->alpha ?: false,
+
+        $option += [
+            'mode' => strtolower($matches[4]),//xvz之一
+            'background' => '#ffffff',//v模式下缩图的背景色
+            'alpha' => false,//v模式时若遇png，背景部分是否写成透明背景
             'width' => intval($matches[3]),
             'height' => intval($matches[5]),
             'save' => 1,//0：只显示，1：只保存，2：即显示也保存
             'ext' => ".{$matches[2]}",
+            'cache' => true,
         ];
-        $option = $option + $dim;
+
         if (!isset($option['source']) or !$option['source']) {
             $option['source'] = realpath("/{$matches[1]}.{$matches[2]}");
         }
@@ -363,10 +423,10 @@ class Image
 
 
         //直接缩放
-        if ($option['type'] === 'z') {
+        if ($option['mode'] === 'z') {
 
 
-        } elseif ($option['type'] === 'x') {//以目标大小,最大化截取，裁切掉不等比部分
+        } elseif ($option['mode'] === 'x') {//以目标大小,最大化截取，裁切掉不等比部分
             switch ($PicV['cutShape']) {
                 case 0://等比
                     break;
@@ -384,7 +444,7 @@ class Image
             }
 
 
-        } elseif ($option['type'] === 'v') {//以原图大小，全部保留，不够部分留白
+        } elseif ($option['mode'] === 'v') {//以原图大小，全部保留，不够部分留白
             switch ($PicV['cutShape']) {
                 case 0://等比
                     break;
@@ -418,7 +478,7 @@ class Image
             'save' => $option['save'],//0：只显示，1：只保存，2：即显示也保存
             'filename' => $file,
             'type' => $PicV['info'][2],//文件类型
-            'cache' => true,//允许缓存
+            'cache' => $option['cache'],//允许缓存
             'quality' => self::Quality,
         ];
         Gd::draw($newIM, $option);

@@ -11,6 +11,52 @@ class TestController
 {
 
     /**
+     * 预览缩略图
+     */
+    public function thumb()
+    {
+        $urls = [];
+        $urls[] = Image::thumbs_url('/pic/mei.jpg', mt_rand(100, 200), 'v');
+        $urls[] = Image::thumbs_url('/pic/girl.jpg', mt_rand(100, 200), 'x');
+        $urls[] = Image::thumbs_url('/pic/test.jpg', mt_rand(100, 200), 0, 'z');
+        foreach ($urls as $url) {
+            echo "<img src='{$url}' style='background: #ffe'>";
+        }
+
+        echo <<<HTML
+<h3>在生成缩略图的站点中(nginx)按如下设置：更详细的配置方法见readme.md中的介绍</h3> 
+<pre style="margin:20px;font-size:14px;">
+server {
+    listen 80;
+    server_name gds.codefarmer.wang;
+    index index.php;
+    root  /home/gds/example/;
+
+    location ~ [^/]\.php(/|$) {
+        try_files \$uri =404;
+        fastcgi_pass  unix:/tmp/php-cgi.sock;
+        fastcgi_index index.php;
+        include fastcgi.conf;
+    }
+    <span style="color:red;">error_page 404 =200 /thumb.php;</span>
+
+    location / {
+        if (!-e \$request_filename) {
+           rewrite ^/(.+)$ /index.php/$1 last;
+        }
+    }
+
+    location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$  {   expires      30d;  }
+    location ~ .*\.(js|css)?$                   {   expires      12h;   }
+    access_log off;
+    autoindex off;
+}
+</pre>
+HTML;
+    }
+
+
+    /**
      * 显示验证码，包括验证
      */
     public function icon()
@@ -55,6 +101,7 @@ HTML;
         if ($filename = Icon::create($file, $size, _ROOT . $file_save)) {
             echo "<img src='{$file_save}'>";
         }
+        echo '<hr>';
         var_dump($filename);
     }
 
@@ -108,7 +155,7 @@ HTML;
         $option["size"] = 10;    //每条线像素点,一般不需要动，若要固定尺寸，用width限制
         $option["margin"] = 1;    //二维码外框空白，指1个size单位，不是指像素
         $option["save"] = 1;    //0：只显示，1：只保存，2：即显示也保存
-        $option["width"] = 0;     //生成的二维码宽高，若不指定则以像素点计算
+        $option["width"] = 200;     //生成的二维码宽高，若不指定则以像素点计算
 
         $option["color"] = '#000000';   //二维码本色，也可以是图片
         $option["background"] = '#fffff5';  //二维码背景色
@@ -121,11 +168,11 @@ HTML;
         $option["filename"] = 'code2.png';        //目录里的文件夹
 
         $option["logo"] = _ROOT . '/pic/logo.jpg';         //LOGO图片
-        $option["border"] = '#def';  //LOGO外边框颜色
+        $option["logo_border"] = '#def';  //LOGO外边框颜色
 
         $option["parent"] = _ROOT . '/pic/girl.jpg';//一个文件地址，将二维码贴在这个图片上
-        $option["parent_x"] = 50;//若指定，则以指定为准
-        $option["parent_y"] = 50;//为null时，居中
+        $option["parent_x"] = 100;//若指定，则以指定为准
+        $option["parent_y"] = 150;//为null时，居中
 
         $option["shadow"] = '#789';//阴影颜色，颜色色值，只有当parent存在时有效
         $option["shadow_x"] = 6;//阴影向右偏移，若为负数则向左
@@ -135,6 +182,7 @@ HTML;
         if ($file = Code2::create($option)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
         }
+        echo '<hr>';
         var_dump($file);
 
     }
@@ -159,6 +207,7 @@ HTML;
         if ($file = Code2::create($option)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
         }
+        echo '<hr>';
         var_dump($file);
 
     }
@@ -185,6 +234,7 @@ HTML;
         if ($file = Code1::create($code)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
         }
+        echo '<hr>';
         var_dump($file);
     }
 
@@ -195,7 +245,7 @@ HTML;
     {
         //这个copy只是为了省得测试时总要改源文件名，实际使用不要这样
         $resource = _ROOT . '/pic/test.png';
-        $file = _ROOT . '/img/mak.png';
+        $file = _ROOT . '/img/mark.png';
         copy($resource, $file);
 
         $config = [
@@ -220,7 +270,7 @@ HTML;
         ];
 
         if ($create = Image::mark($file, $config)) {
-            echo "处理文件：{$file}<br />", '<img src="/img/mak.png">';
+            echo "处理文件：{$file}<br />", '<img src="/img/mark.png">';
         } else {
             var_dump($create);
         }
