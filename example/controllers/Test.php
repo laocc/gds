@@ -10,6 +10,29 @@ use laocc\gds\Image;
 class TestController
 {
 
+
+    public function size()
+    {
+        copy(_ROOT . '/pic/mei.jpg', _ROOT . '/img/mei.jpg');
+        copy(_ROOT . '/pic/logo.jpg', _ROOT . '/img/logo.jpg');
+        echo '<h4>刷新页面，可随机判断并生成相应图片尺寸</h4>';
+        if ($max = Image::max(_ROOT . '/img/mei.jpg', [mt_rand(100, 200), 0], 1, false)) {
+            echo "<img src='/img/mei.jpg'>";
+        } else {
+            echo "缩小时出错：";
+            var_dump($max);
+        }
+        if ($min = Image::max(_ROOT . '/img/logo.jpg', [0, mt_rand(100, 200)], 1, false)) {
+            echo "<img src='/img/logo.jpg'>";
+        } else {
+            echo "放大时出错：";
+            var_dump($min);
+        }
+
+
+    }
+
+
     /**
      * 预览缩略图
      */
@@ -19,6 +42,8 @@ class TestController
         $urls[] = Image::thumbs_url('/pic/mei.jpg', mt_rand(100, 200), 'v');
         $urls[] = Image::thumbs_url('/pic/girl.jpg', mt_rand(100, 200), 'x');
         $urls[] = Image::thumbs_url('/pic/test.jpg', mt_rand(100, 200), 0, 'z');
+        echo '<h4>刷新页面，可生成随机尺寸的缩略图</h4>';
+
         foreach ($urls as $url) {
             echo "<img src='{$url}' style='background: #ffe'>";
         }
@@ -178,6 +203,7 @@ HTML;
         $option["shadow_x"] = 6;//阴影向右偏移，若为负数则向左
         $option["shadow_y"] = 6;//阴影向下偏移，若为负数则向上
         $option["shadow_alpha"] = 80;//透明度，百分数
+        echo '<h4>刷新页面，产生不同内容的二维码</h4>';
 
         if ($file = Code2::create($option)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
@@ -203,6 +229,7 @@ HTML;
         $option["root"] = _ROOT;  //保存目录
         $option["path"] = 'img';        //目录里的文件夹
         $option["filename"] = 'code2s.png';        //目录里的文件夹
+        echo '<h4>刷新页面，产生不同内容的二维码</h4>';
 
         if ($file = Code2::create($option)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
@@ -230,6 +257,7 @@ HTML;
         $code['path'] = 'img';   //含在URL部分
         $code['filename'] = 'code1.jpg';      //不带此参，或此参为false值，则随机产生
         $code['save'] = 1;      //0：显示，1：保存，2：保存+显示
+        echo '<h4>刷新页面，产生不同内容的条形码</h4>';
 
         if ($file = Code1::create($code)) {
             echo "<img src='{$file['path']}{$file['filename']}'>";
@@ -268,6 +296,7 @@ HTML;
                 'offset' => [0, mt_rand(-50, -10)],
             ],
         ];
+        echo '<h4>刷新页面，在图片中随机位置贴上水印图片和文字</h4>';
 
         if ($create = Image::mark($file, $config)) {
             echo "处理文件：{$file}<br />", '<img src="/img/mark.png">';

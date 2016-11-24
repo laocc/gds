@@ -34,7 +34,7 @@ class Text
             'percent' => 1.5,//字体间距与字号比例
         ];
         $option = $option + $dim;
-        $cut = str_cut($text);
+        $cut = self::str_cut($text);
         $count = count($cut);
 
         //不指定尺寸，自动计算
@@ -99,6 +99,21 @@ class Text
         return $file;
     }
 
+
+    /**
+     * 将字符串分割成1个字的数组，主要用于中英文混合时，将中英文安全的分割开
+     * @param $str
+     * @return array
+     */
+    private static function str_cut($str)
+    {
+        $len = mb_strlen($str);
+        $arr = [];
+        for ($i = 0; $i < $len; $i++) {
+            $arr[] = mb_substr($str, $i, 1, "utf8");
+        }
+        return $arr;
+    }
 
     //计算文字位置
     private static function get_text_xy($iw, $ih, &$size, $font, $txt)

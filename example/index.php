@@ -18,8 +18,9 @@ function nav()
         ul{clear:both;display:block;width:100%;height:50px;}
         li{float:left;margin:10px;}
         img{margin:10px;padding:10px;border:1px solid #abc;}
+        h4{color:#FF4C3B}
     </style>
-    <title>测试</title>
+    <title>LaoCC GDS 测试</title>
     <ul>
         <li><a href="/?action=mark">加水印</a></li>
         <li><a href="/?action=code1">条形码</a></li>
@@ -27,13 +28,14 @@ function nav()
         <li><a href="/?action=code2s">简洁二维码</a></li>
         <li><a href="/?action=icon">生成ICO/验证码</a></li>
         <li><a href="/?action=thumb">自动缩略图</a></li>
+        <li><a href="/?action=size">图片缩放</a></li>
     </ul>
 HTML;
 
 }
 
 
-if (in_array($action, ['mark', 'code1', 'code2', 'code2s', 'icon', 'thumb'])) {
+if (in_array($action, ['mark', 'code1', 'code2', 'code2s', 'icon', 'thumb', 'size'])) {
     nav();
     $obj = new \demo\TestController();
     $obj->{$action}();

@@ -24,97 +24,49 @@ class Image
     static private $pattern;
 
     /**
-     * 检查文件是否超宽，并设置到指定尺寸
-     * @param string $file
-     * @param int $maxWidth
-     * @return bool
+     * 图片尺寸超大或超小时，缩放至该尺寸
      */
-    public static function limit($file, array $size = [0, 0], $backUP = true)
+    public static function max($file, array $size = [0, 0], $save = 1, $backUP = true)
     {
-        if (!is_file($file)) return false;
-        $info = getimagesize($file);
-        $wid = ($size[0] > 0 and $info[0] > $size[0]);
-        $hei = ($size[1] > 0 and $info[1] > $size[1]);
-        if (!$wid and !$hei) {
-            return null;
-        } elseif ($hei) {//以高为准
-            $height = $size[1];
-            $width = $info[0] * ($height / $info[1]);
-        } else {        //以宽为准
-            $width = $size[0];
-            $height = $info[1] * ($width / $info[0]);
-        }
-
-        //源文件备份
-        if ($backUP) self::backup($file, true);
-
-        //建立临时容器
-        $IM = imagecreatetruecolor($width, $height);
-        $PM = Gd::createIM($file, $info[2]);
-
-        //原图写入临时容器，缩放
-        imagecopyresampled($IM, $PM, 0, 0, 0, 0, $width, $height, $info[0], $info[1]);
-
-        $option = [
-            'save' => 1,//0：只显示，1：只保存，2：即显示也保存
-            'filename' => $file,
-            'type' => $info[2],//文件类型
-            'quality' => self::Quality,
-        ];
-
-        Gd::draw($IM, $option);
-        imagedestroy($PM);
-        clearstatcache();
-        return true;
+        return self::size($file, $size, $save, $backUP, 1);
     }
 
-
-    /**
-     * 修正为_ROOT开头
-     * @param $path
-     * @return string|array
-     */
-    private static function root($path)
+    public static function min($file, array $size = [0, 0], $save = 1, $backUP = true)
     {
-        if (substr($path, 0, 1) === '/') return $path;
-        $err = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 1)[1];
-
-        $root = getcwd();
-        $path = $root . $path;
-        return $path;
+        return self::size($file, $size, $save, $backUP, -1);
     }
 
-
-    /**
-     * 同一文件只备份一次
-     * @param $file
-     * @param bool $force
-     */
-    private static function backup($file, $force = false)
-    {
-        $mdKey = md5($file);
-        if (!$force and isset(self::$backup[$mdKey])) return;
-        $ext = pathinfo($file, PATHINFO_EXTENSION);
-        if (is_file("{$file}.{$ext}")) return;
-        copy($file, "{$file}.{$ext}");
-        self::$backup[$mdKey] = 1;
-    }
 
     /*
      * 重置图片尺寸
-     * @param string $file
+     * @param $file
      * @param array $reSize
+     * @param bool $backUP
+     * @param int $force
      * @return bool
+     *
+     * $force>0 只有图片尺寸大于指定尺寸时，缩小到该尺寸
+     * $force=0 无论大或小，都转换成该尺寸
+     * $force<0 只有图片尺寸小于指定尺寸时，放大到该尺寸
      */
-    public static function size($file, array $reSize = [0, 0], $backUP = true)
+    public static function size($file, array $reSize = [0, 0], $save = 1, $backUP = true, $force = 0)
     {
         if (!is_file($file)) return false;
         $info = getimagesize($file);
-        if (!$info) {
-            @unlink($file);
-            return false;
-        }
+        if (!$info) return false;
+
         if ($info[0] === $reSize[0] and $info[1] === $reSize[1]) return true;
+
+        if ($force > 0) {
+            $wid = ($reSize[0] > 0 and $info[0] > $reSize[0]);
+            $hei = ($reSize[1] > 0 and $info[1] > $reSize[1]);
+            if (!$wid and !$hei) return null;
+        } elseif ($force < 0) {
+            $wid = ($reSize[0] > 0 and $info[0] < $reSize[0]);
+            $hei = ($reSize[1] > 0 and $info[1] < $reSize[1]);
+            if (!$wid and !$hei) return null;
+        }
+
         list($reWidth, $reHeight) = $reSize;
         if (!$reWidth and !$reHeight) return false;
 
@@ -135,7 +87,7 @@ class Image
         imagecopyresampled($IM, $PM, 0, 0, 0, 0, $reWidth, $reHeight, $info[0], $info[1]);
 
         $option = [
-            'save' => 1,//0：只显示，1：只保存，2：即显示也保存
+            'save' => $save,//0：只显示，1：只保存，2：即显示也保存
             'filename' => $file,
             'type' => $info[2],//文件类型
             'quality' => self::Quality,
@@ -888,5 +840,36 @@ class Image
         return true;
     }
 
+
+    /**
+     * 修正为_ROOT开头
+     * @param $path
+     * @return string|array
+     */
+    private static function root($path)
+    {
+        if (substr($path, 0, 1) === '/') return $path;
+        $err = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 1)[1];
+
+        $root = getcwd();
+        $path = $root . $path;
+        return $path;
+    }
+
+
+    /**
+     * 同一文件只备份一次
+     * @param $file
+     * @param bool $force
+     */
+    private static function backup($file, $force = false)
+    {
+        $mdKey = md5($file);
+        if (!$force and isset(self::$backup[$mdKey])) return;
+        $ext = pathinfo($file, PATHINFO_EXTENSION);
+        if (is_file("{$file}.{$ext}")) return;
+        copy($file, "{$file}.{$ext}");
+        self::$backup[$mdKey] = 1;
+    }
 
 }
