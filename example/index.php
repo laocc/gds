@@ -45,4 +45,3 @@ if (in_array($action, ['mark', 'code1', 'code2', 'code2s', 'icon', 'thumb', 'siz
 } else {
     nav();
 }
-
